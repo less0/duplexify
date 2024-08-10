@@ -3,9 +3,9 @@
 *duplexify* is a small dockerized application that merges PDF files that have been scanned frontside 
 first and then backside. It watches on a configurable folder for PDFs to come in and as soon as 
 there are two PDFs it assumes the the first one contains the frontsides and the second contains the
-backsides (in descending order, e.g. pages 6, 4, 2) and merges them using 
-[PDFtk Server](https://www.pdflabs.com/tools/pdftk-server/). Erroneous PDFs are moved to an error 
-directory (to timestamped subfolders).
+backsides (in descending order, e.g. pages 6, 4, 2) and merges them using the 
+[Java port](https://gitlab.com/pdftk-java/pdftk) of [PDFtk Server](https://www.pdflabs.com/tools/pdftk-server/). 
+Erroneous PDFs are moved to an error directory (to timestamped subfolders).
 
 ## License
 
