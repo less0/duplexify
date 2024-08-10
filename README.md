@@ -53,10 +53,3 @@ personal preferences, therefor I won't provide the information how to run the co
 | `DOTNET_WatchDirectory` | The directory the application watches at. Effectively defaults to `"/app/in"`. |
 | `DOTNET_OutDirectory` | The directory the merged PDFs are written to. Effectively defaults to `"/app/out"` |
 | `DOTNET_ErrorDirectory` | The directory, erroneous PDFs are written to. Effectively defaults to `"/app/error"` |
-
-## Using the same input and output directory
-
-If the input and output directory are the same, the merged file will be written to the input 
-directory and be merged with the next file that comes in. The application does not takes this into
-account at the moment, therefor, the configuration should not point to the same directory for
-watching and merging. 

@@ -19,7 +19,11 @@ public class WatchDirectoryWorker : BackgroundService
     {
         _logger = logger;
         _pdfMerger = pdfMerger;
-        _watchDirectory = configDirectoryService.GetDirectory("WatchDirectory", "in");
+
+        _watchDirectory = configDirectoryService.GetDirectory(
+            Constants.ConfigurationKeys.WatchDirectory, 
+            Constants.DefaultWatchDirectoryName);
+
         _logger.LogInformation("Watching directory {0}", _watchDirectory);
     }
 

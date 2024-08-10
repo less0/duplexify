@@ -14,8 +14,12 @@ namespace duplexify.Application
         {
             _logger = logger;
 
-            _outDirectory = configDirectoryService.GetDirectory("OutDirectory", "out");
-            _errorDirectory = configDirectoryService.GetDirectory("ErrorDirectory", "error");
+            _outDirectory = configDirectoryService.GetDirectory(
+                Constants.ConfigurationKeys.OutDirectory, 
+                Constants.DefaultOutDirectoryName);
+            _errorDirectory = configDirectoryService.GetDirectory(
+                Constants.ConfigurationKeys.ErrorDirectory, 
+                Constants.DefaultErrorDirectoryName);
 
             _logger.LogInformation("Writing to directory {0}", _outDirectory);
             _logger.LogInformation("Writing corrupt PDFs to {0}", _errorDirectory);
