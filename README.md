@@ -53,3 +53,7 @@ personal preferences, therefor I won't provide the information how to run the co
 | `DOTNET_WatchDirectory` | The directory the application watches at. Effectively defaults to `"/app/in"`. |
 | `DOTNET_OutDirectory` | The directory the merged PDFs are written to. Effectively defaults to `"/app/out"` |
 | `DOTNET_ErrorDirectory` | The directory, erroneous PDFs are written to. Effectively defaults to `"/app/error"` |
+
+# Known limitations
+
+- At the moment *duplexify* might struggle on files being added simultanously, this might result in unexpected results, make sure files are added one after another
