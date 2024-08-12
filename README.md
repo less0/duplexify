@@ -43,9 +43,40 @@ docker build -t duplexify .
 ```
 
 To add files to be merged, it comes handy to have mounted volumes you can write the PDFs to 
-and read them after they have been merged. The exact configuration depends on your system and 
-personal preferences, therefor I won't provide the information how to run the container here 
-(and I assume you should know, how to run a Docker container).
+and read them after they have been merged. 
+
+## Integration with portainer
+
+Since portainer does not allow custom options when you create a CIFS volume and by default a CIFS volume is mounted as *root* without write access for the restricted user that runs the app, you can run *duplexify* on portainer using Stacks. Stacks allow you to create a Docker compose file *"on the fly"* and within that create CIFS volumes with a custom UID. 
+
+**Example Stack:**
+
+```
+services:
+  duplexify:
+    image: less0/duplexify:latest
+    container_name: duplexify_worker
+    volumes:
+      - in:/app/in 
+      - out:/app/out
+    restart: unless-stopped
+
+volumes:
+  in:
+    driver: local
+    driver_opts:
+      type: "cifs"
+      device: "<input network share>" # e.g. //192.168.0.123/duplexify/in
+      o: "username=<input network share user>,password=<input network share pass>,vers=2.0,uid=1654,gid=1654"
+  out:
+    driver: local
+    driver_opts:
+      type: "cifs"
+      device: "<output network share>" # e.g. //192.168.0.123/duplexify/out
+      o: "username=<output network share user>,password=<output network share pass>,vers=2.0,uid=1654,gid=1654"
+```
+
+Just replace the parts in the angle brackets with the values suitable for your setup. `1654` is the UID and GID of the user and group `app` in the image.
 
 ## Docker variables
 
