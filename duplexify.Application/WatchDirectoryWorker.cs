@@ -84,7 +84,7 @@ public class WatchDirectoryWorker : BackgroundService
             fileStream.Close();
             return false;
         }
-        catch(IOException)
+        catch(UnauthorizedAccessException)
         {
             return true;
         }
