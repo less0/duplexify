@@ -26,12 +26,6 @@ RUN wget https://gitlab.com/api/v4/projects/5024297/packages/generic/pdftk-java/
 RUN mv pdftk-all.jar /usr/local/bin/pdftk.jar
 COPY pdftk /usr/local/bin
 RUN chmod 775 /usr/local/bin/pdftk*
-RUN mkdir /app/in
-RUN chmod 0777 /app/in
-RUN mkdir /app/out
-RUN chmod 0777 /app/out
-RUN mkdir /app/error
-RUN chown 0777 /app/error
 
 USER app
 WORKDIR /app
