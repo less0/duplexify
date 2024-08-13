@@ -1,5 +1,4 @@
-
-namespace duplexify.Application;
+namespace duplexify.Application.Workers;
 
 /// <summary>
 /// Worker that watches a specific directory for PDF files to come in and enqueues them with a
@@ -14,15 +13,15 @@ public class WatchDirectoryWorker : BackgroundService
     private readonly string _watchDirectory;
     private readonly HashSet<string> _filesNotToProcess = new();
 
-    public WatchDirectoryWorker(ILogger<WatchDirectoryWorker> logger, 
-        IConfigDirectoryService configDirectoryService, 
+    public WatchDirectoryWorker(ILogger<WatchDirectoryWorker> logger,
+        IConfigDirectoryService configDirectoryService,
         IPdfMerger pdfMerger)
     {
         _logger = logger;
         _pdfMerger = pdfMerger;
 
         _watchDirectory = configDirectoryService.GetDirectory(
-            Constants.ConfigurationKeys.WatchDirectory, 
+            Constants.ConfigurationKeys.WatchDirectory,
             Constants.DefaultWatchDirectoryName);
 
         _logger.LogInformation("Watching directory {0}", _watchDirectory);
@@ -84,7 +83,7 @@ public class WatchDirectoryWorker : BackgroundService
             fileStream.Close();
             return false;
         }
-        catch(UnauthorizedAccessException)
+        catch (UnauthorizedAccessException)
         {
             return true;
         }

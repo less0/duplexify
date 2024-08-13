@@ -1,24 +1,25 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.Concurrent;
+using System.ComponentModel;
 using System.Diagnostics;
 
-namespace duplexify.Application
+namespace duplexify.Application.Workers
 {
-    internal class PdfMerger : IPdfMerger
+    internal class PdfMerger : BackgroundService, IPdfMerger
     {
         private readonly ILogger<PdfMerger> _logger;
         private string _outDirectory;
         private string _errorDirectory;
-        private Queue<string> _processingQueue = new();
+        private ConcurrentQueue<string> _processingQueue = new();
 
         public PdfMerger(ILogger<PdfMerger> logger, IConfigDirectoryService configDirectoryService)
         {
             _logger = logger;
 
             _outDirectory = configDirectoryService.GetDirectory(
-                Constants.ConfigurationKeys.OutDirectory, 
+                Constants.ConfigurationKeys.OutDirectory,
                 Constants.DefaultOutDirectoryName);
             _errorDirectory = configDirectoryService.GetDirectory(
-                Constants.ConfigurationKeys.ErrorDirectory, 
+                Constants.ConfigurationKeys.ErrorDirectory,
                 Constants.DefaultErrorDirectoryName);
 
             _logger.LogInformation("Writing to directory {0}", _outDirectory);
@@ -27,20 +28,35 @@ namespace duplexify.Application
 
         public void EnqueueForMerging(string path)
         {
-            _logger.LogInformation("Processing {0}", path);
-
             _processingQueue.Enqueue(path);
+            _logger.LogInformation("Enqueued {0}", path);
+        }
 
-            if(_processingQueue.Count >= 2)
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            return Task.Run(() =>
             {
-                MergeFirstTwoFilesFromQueue();
-            }
+                while (!stoppingToken.IsCancellationRequested)
+                {
+                    MergeFirstTwoFilesFromQueue();
+                }
+            }, stoppingToken);
         }
 
         private void MergeFirstTwoFilesFromQueue()
         {
-            string fileA = _processingQueue.Dequeue();
-            string fileB = _processingQueue.Dequeue();
+            if (_processingQueue.Count < 2)
+            {
+                return;
+            }
+
+            // These calls should not ever return false. 
+            if(!_processingQueue.TryDequeue(out var fileA)
+            || !_processingQueue.TryDequeue(out var fileB))
+            {
+                throw new InvalidOperationException();
+            }
+
             string outFile = Path.Combine(_outDirectory, $"{DateTime.Now.GetSortableFileSystemName()}.pdf");
 
             _logger.LogInformation($"Merging {fileA} and {fileB}");
@@ -64,7 +80,7 @@ namespace duplexify.Application
             {
                 Directory.CreateDirectory(uniqueErrorDirectory);
             }
-            
+
             var errorFileA = Path.Combine(uniqueErrorDirectory, Path.GetFileName(fileA));
             var errorFileB = Path.Combine(uniqueErrorDirectory, Path.GetFileName(fileB));
 
@@ -84,7 +100,7 @@ namespace duplexify.Application
         {
             try
             {
-                var process = System.Diagnostics.Process.Start(new ProcessStartInfo("pdftk")
+                var process = Process.Start(new ProcessStartInfo("pdftk")
                 {
                     Arguments = $"A=\"{fileA}\" B=\"{fileB}\" shuffle A Bend-1 output \"{outFile}\""
                 });
