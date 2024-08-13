@@ -1,6 +1,6 @@
 ﻿namespace duplexify.Application
 {
-    internal interface IConfigurationValidator
+    internal interface IConfigValidator
     {
         /// <summary> 
         /// Throws an exception if the configuration is invalid.

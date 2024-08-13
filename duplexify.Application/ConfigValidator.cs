@@ -1,6 +1,6 @@
 ﻿namespace duplexify.Application
 {
-    internal class ConfigurationValidator(IConfigDirectoryService configDirectoryService) : IConfigurationValidator
+    internal class ConfigValidator(IConfigDirectoryService configDirectoryService) : IConfigValidator
     {
         IConfigDirectoryService _configDirectoryService = configDirectoryService;
 
