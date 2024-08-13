@@ -31,6 +31,7 @@ Custom directories can be set in `appsettings.json`
 | `WatchDirectory` | The directory the application watches at. |
 | `OutDirectory` | The directory the merged PDFs are written to. |
 | `ErrorDirectory` | The directory erroneous PDFs are written to. |
+| `StaleFileTimeout` | The timeout after which stale files are deleted. |
 
 ## Building with Docker
 
@@ -85,6 +86,7 @@ Just replace the parts in the angle brackets with the values suitable for your s
 | `DOTNET_WatchDirectory` | The directory the application watches at. Effectively defaults to `"/app/in"`. |
 | `DOTNET_OutDirectory` | The directory the merged PDFs are written to. Effectively defaults to `"/app/out"` |
 | `DOTNET_ErrorDirectory` | The directory, erroneous PDFs are written to. Effectively defaults to `"/app/error"` |
+| `DOTNET_StaleFileTimeout` | The timeout after which stale files are deleted. |
 
 # Known limitations
 

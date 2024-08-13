@@ -9,9 +9,12 @@ namespace duplexify.Application.Workers
         private readonly ILogger<PdfMerger> _logger;
         private string _outDirectory;
         private string _errorDirectory;
+        private TimeSpan _staleFileTimeout;
         private ConcurrentQueue<string> _processingQueue = new();
 
-        public PdfMerger(ILogger<PdfMerger> logger, IConfigDirectoryService configDirectoryService)
+        public PdfMerger(ILogger<PdfMerger> logger, 
+            IConfigDirectoryService configDirectoryService,
+            IConfiguration configuration)
         {
             _logger = logger;
 
@@ -21,6 +24,8 @@ namespace duplexify.Application.Workers
             _errorDirectory = configDirectoryService.GetDirectory(
                 Constants.ConfigurationKeys.ErrorDirectory,
                 Constants.DefaultErrorDirectoryName);
+
+            _staleFileTimeout = configuration.GetValue("StaleFileTimeout", TimeSpan.FromHours(1));
 
             _logger.LogInformation("Writing to directory {0}", _outDirectory);
             _logger.LogInformation("Writing corrupt PDFs to {0}", _errorDirectory);
@@ -38,10 +43,28 @@ namespace duplexify.Application.Workers
             {
                 while (!stoppingToken.IsCancellationRequested)
                 {
+                    RemoveStaleFiles();
                     MergeFirstTwoFilesFromQueue();
                 }
             }, stoppingToken);
         }
+
+        private void RemoveStaleFiles()
+        {
+            if (SingleFileInQueueIsStale())
+            {
+                if(!_processingQueue.TryDequeue(out var staleFilePath))
+                {
+                    throw new InvalidOperationException();
+                }
+
+                File.Delete(staleFilePath);
+            }
+        }
+
+        private bool SingleFileInQueueIsStale() => _processingQueue.Count == 1
+                            && _processingQueue.TryPeek(out var filePath)
+                            && DateTime.Now - File.GetLastWriteTime(filePath) > _staleFileTimeout;
 
         private void MergeFirstTwoFilesFromQueue()
         {
