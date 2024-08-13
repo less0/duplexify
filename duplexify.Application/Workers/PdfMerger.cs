@@ -37,16 +37,14 @@ namespace duplexify.Application.Workers
             _logger.LogInformation("Enqueued {0}", path);
         }
 
-        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            return Task.Run(() =>
+            while (!stoppingToken.IsCancellationRequested)
             {
-                while (!stoppingToken.IsCancellationRequested)
-                {
-                    RemoveStaleFiles();
-                    MergeFirstTwoFilesFromQueue();
-                }
-            }, stoppingToken);
+                RemoveStaleFiles();
+                MergeFirstTwoFilesFromQueue();
+                await Task.Delay(1000);
+            }
         }
 
         private void RemoveStaleFiles()
