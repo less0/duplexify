@@ -12,6 +12,7 @@ namespace duplexify.Application.Workers
         private string _errorDirectory;
         private TimeSpan _staleFileTimeout;
         private ConcurrentQueue<string> _processingQueue = new();
+        private string _currentErrorDirectory;
 
         public PdfMerger(ILogger<PdfMerger> logger, 
             IConfigDirectoryService configDirectoryService,
@@ -99,12 +100,17 @@ namespace duplexify.Application.Workers
             }
             else
             {
-                MoveToErrorDirectory(fileA, fileB, out var directory);
-                _logger.LogError("Error occurred, moved files to error directory {0}", directory);
+                CreateUniqueErrorDirectory();
+
+                // We can't continue with the files still being around
+                Policy.Handle<IOException>().RetryForever().Execute(() => MoveToErrorDirectory(fileA));
+                Policy.Handle<IOException>().RetryForever().Execute(() => MoveToErrorDirectory(fileB));
+
+                _logger.LogError("Error occurred, moved files to error directory {0}", _currentErrorDirectory);
             }
         }
 
-        private void MoveToErrorDirectory(string fileA, string fileB, out string directory)
+        private void CreateUniqueErrorDirectory()
         {
             var uniqueErrorDirectory = Path.Combine(_errorDirectory, DateTime.Now.GetSortableFileSystemName());
 
@@ -113,13 +119,13 @@ namespace duplexify.Application.Workers
                 Directory.CreateDirectory(uniqueErrorDirectory);
             }
 
-            var errorFileA = Path.Combine(uniqueErrorDirectory, Path.GetFileName(fileA));
-            var errorFileB = Path.Combine(uniqueErrorDirectory, Path.GetFileName(fileB));
+            _currentErrorDirectory = uniqueErrorDirectory;
+        }
 
-            File.Move(fileA, errorFileA);
-            File.Move(fileB, errorFileB);
-
-            directory = uniqueErrorDirectory;
+        private void MoveToErrorDirectory(string filePath)
+        {
+            var targetPath = Path.Combine(_currentErrorDirectory, Path.GetFileName(filePath));
+            File.Move(filePath, targetPath);
         }
 
         private static void DeleteSourceFiles(string fileA, string fileB)
