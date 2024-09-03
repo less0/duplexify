@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using Polly;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
 
@@ -72,16 +73,26 @@ namespace duplexify.Application.Workers
             }
 
             // These calls should not ever return false. 
-            if(!_processingQueue.TryDequeue(out var fileA)
+            if (!_processingQueue.TryDequeue(out var fileA)
             || !_processingQueue.TryDequeue(out var fileB))
             {
                 throw new InvalidOperationException();
             }
 
+            MergeFiles(fileA, fileB);
+        }
+
+        private void MergeFiles(string fileA, string fileB)
+        {
             string outFile = Path.Combine(_outDirectory, $"{DateTime.Now.GetSortableFileSystemName()}.pdf");
 
             _logger.LogInformation($"Merging {fileA} and {fileB}");
-            if (MergeFiles(fileA, fileB, outFile))
+
+            var mergedSuccessfully = Policy.HandleResult(false)
+                .WaitAndRetry(5, _ => TimeSpan.FromSeconds(5), (_, _) => _logger.LogError("Failed merging files, retrying."))
+                .Execute(() => MergeToFile(fileA, fileB, outFile));
+
+            if (mergedSuccessfully)
             {
                 DeleteSourceFiles(fileA, fileB);
                 _logger.LogInformation($"Merged files to {outFile}");
@@ -117,7 +128,7 @@ namespace duplexify.Application.Workers
             File.Delete(fileB);
         }
 
-        private bool MergeFiles(string fileA, string fileB, string outFile)
+        private bool MergeToFile(string fileA, string fileB, string outFile)
         {
             try
             {
