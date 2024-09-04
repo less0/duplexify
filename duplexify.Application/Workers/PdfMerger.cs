@@ -12,7 +12,7 @@ namespace duplexify.Application.Workers
         private string _errorDirectory;
         private TimeSpan _staleFileTimeout;
         private ConcurrentQueue<string> _processingQueue = new();
-        private string _currentErrorDirectory;
+        private string _currentErrorDirectory = null!;
 
         public PdfMerger(ILogger<PdfMerger> logger, 
             IConfigDirectoryService configDirectoryService,
@@ -51,7 +51,7 @@ namespace duplexify.Application.Workers
 
         private void RemoveStaleFiles()
         {
-            if (SingleFileInQueueIsStale())
+            if (SingleFileInQueueIsStale)
             {
                 if(!_processingQueue.TryDequeue(out var staleFilePath))
                 {
@@ -59,10 +59,11 @@ namespace duplexify.Application.Workers
                 }
 
                 File.Delete(staleFilePath);
+                _logger.LogInformation($"Deleted stale file {staleFilePath}.");
             }
         }
 
-        private bool SingleFileInQueueIsStale() => _processingQueue.Count == 1
+        private bool SingleFileInQueueIsStale => _processingQueue.Count == 1
                             && _processingQueue.TryPeek(out var filePath)
                             && DateTime.Now - File.GetLastWriteTime(filePath) > _staleFileTimeout;
 
@@ -138,14 +139,14 @@ namespace duplexify.Application.Workers
         {
             try
             {
-                var process = Process.Start(new ProcessStartInfo("pdftk")
+                var pdftkProcess = Process.Start(new ProcessStartInfo("pdftk")
                 {
                     Arguments = $"A=\"{fileA}\" B=\"{fileB}\" shuffle A Bend-1 output \"{outFile}\""
                 });
 
-                process?.WaitForExit();
-                _logger.LogInformation($"Exit code {process?.ExitCode}");
-                return process?.ExitCode == 0;
+                pdftkProcess?.WaitForExit();
+                _logger.LogInformation($"Exit code {pdftkProcess?.ExitCode}");
+                return pdftkProcess?.ExitCode == 0;
             }
             catch (Win32Exception)
             {
