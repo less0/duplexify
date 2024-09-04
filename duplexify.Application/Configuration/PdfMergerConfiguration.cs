@@ -1,5 +1,4 @@
-﻿
-namespace duplexify.Application
+﻿namespace duplexify.Application.Configuration
 {
     internal class PdfMergerConfiguration : IPdfMergerConfiguration
     {
@@ -10,7 +9,7 @@ namespace duplexify.Application
             IConfigDirectoryService configDirectoryService,
             IConfiguration configuration)
         {
-            _logger = logger; 
+            _logger = logger;
             _configuration = configuration;
 
             OutDirectory = configDirectoryService.GetDirectory(
@@ -30,7 +29,7 @@ namespace duplexify.Application
         {
             var value = _configuration.GetValue(key, defaultValue);
 
-            if(!value.Equals(defaultValue))
+            if (!value.Equals(defaultValue))
             {
                 _logger.LogInformation($"{key} is {value}.");
             }

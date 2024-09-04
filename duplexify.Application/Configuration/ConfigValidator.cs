@@ -1,4 +1,4 @@
-﻿namespace duplexify.Application
+﻿namespace duplexify.Application.Configuration
 {
     internal class ConfigValidator(IConfigDirectoryService configDirectoryService) : IConfigValidator
     {
@@ -13,7 +13,7 @@
                 Constants.ConfigurationKeys.OutDirectory,
                 Constants.DefaultOutDirectoryName);
 
-            if(watchDirectory == outDirectory)
+            if (watchDirectory == outDirectory)
             {
                 throw new InvalidDirectoryConfigurationException();
             }

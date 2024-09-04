@@ -1,4 +1,4 @@
-﻿namespace duplexify.Application
+﻿namespace duplexify.Application.Configuration
 {
     internal class ConfigDirectoryService : IConfigDirectoryService
     {

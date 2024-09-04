@@ -1,4 +1,6 @@
-﻿namespace duplexify.Application
+﻿using duplexify.Application.Configuration;
+
+namespace duplexify.Application
 {
     internal interface IConfigValidator
     {
