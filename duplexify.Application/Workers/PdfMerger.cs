@@ -1,18 +1,25 @@
 ﻿using Polly;
+using Polly.Retry;
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace duplexify.Application.Workers
 {
     internal class PdfMerger : BackgroundService, IPdfMerger
     {
+        private const int DefaultMergeRetryCount = 5;
+
+        private static readonly TimeSpan DefaultMergeRetryTimeout = TimeSpan.FromSeconds(5);
+
         private readonly ILogger<PdfMerger> _logger;
         private string _outDirectory;
         private string _errorDirectory;
         private TimeSpan _staleFileTimeout;
         private ConcurrentQueue<string> _processingQueue = new();
         private string _currentErrorDirectory = null!;
+        private RetryPolicy<bool> _mergeRetryPolicy;
 
         public PdfMerger(ILogger<PdfMerger> logger, 
             IConfigDirectoryService configDirectoryService,
@@ -27,10 +34,37 @@ namespace duplexify.Application.Workers
                 Constants.ConfigurationKeys.ErrorDirectory,
                 Constants.DefaultErrorDirectoryName);
 
-            _staleFileTimeout = configuration.GetValue("StaleFileTimeout", TimeSpan.FromHours(1));
+            SetUpStaleFileCleanUp(configuration);
+            SetUpMergeRetryPolicy(configuration);
 
             _logger.LogInformation("Writing to directory {0}", _outDirectory);
             _logger.LogInformation("Writing corrupt PDFs to {0}", _errorDirectory);
+        }
+
+        private void SetUpStaleFileCleanUp(IConfiguration configuration)
+        {
+            _staleFileTimeout = configuration.GetValue("StaleFileTimeout", TimeSpan.FromHours(1));
+        }
+
+        [MemberNotNull(nameof(_mergeRetryPolicy))]
+        private void SetUpMergeRetryPolicy(IConfiguration configuration)
+        {
+            var mergeRetryTimeout = configuration.GetValue("MergeRetryTimeout", DefaultMergeRetryTimeout);
+
+            if(mergeRetryTimeout != DefaultMergeRetryTimeout)
+            {
+                _logger.LogInformation($"Merge retry timeout is set to {mergeRetryTimeout}.");
+            }
+
+            var mergeRetryCount = configuration.GetValue("MergeRetryCount", DefaultMergeRetryCount);
+
+            if (mergeRetryCount != DefaultMergeRetryCount)
+            {
+                _logger.LogInformation($"Merge retry count is set to {mergeRetryCount}.");
+            }
+
+            _mergeRetryPolicy = Policy.HandleResult(false)
+                .WaitAndRetry(mergeRetryCount, _ => mergeRetryTimeout, (_, _, currentRetryCount, _) => _logger.LogError($"Failed merging files, retrying. ({currentRetryCount})"));
         }
 
         public void EnqueueForMerging(string path)
@@ -90,9 +124,7 @@ namespace duplexify.Application.Workers
 
             _logger.LogInformation($"Merging {fileA} and {fileB}");
 
-            var mergedSuccessfully = Policy.HandleResult(false)
-                .WaitAndRetry(5, _ => TimeSpan.FromSeconds(5), (_, _) => _logger.LogError("Failed merging files, retrying."))
-                .Execute(() => MergeToFile(fileA, fileB, outFile));
+            var mergedSuccessfully = _mergeRetryPolicy.Execute(() => MergeToFile(fileA, fileB, outFile));
 
             if (mergedSuccessfully)
             {
