@@ -31,7 +31,7 @@ namespace duplexify.Application.Workers
 
         private bool SingleFileInQueueIsStale => _processingQueue.Count == 1
                             && _processingQueue.TryPeek(out var filePath)
-                            && DateTime.Now - File.GetLastWriteTime(filePath) > _configuration.StaleFileTimeout;
+                            && DateTime.UtcNow - File.GetCreationTimeUtc(filePath) > _configuration.StaleFileTimeout;
 
         [MemberNotNull(nameof(_mergeRetryPolicy))]
         private void SetUpMergeRetryPolicy()
