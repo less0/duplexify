@@ -2,17 +2,16 @@
 
 namespace duplexify.Application.Configuration
 {
-    internal class PdfMergerConfiguration : IPdfMergerConfiguration
+    internal class PdfMergerConfiguration : ConfigurationBase, IPdfMergerConfiguration
     {
         private ILogger<PdfMergerConfiguration> _logger;
-        private IConfiguration _configuration;
 
         public PdfMergerConfiguration(ILogger<PdfMergerConfiguration> logger,
             IConfigDirectoryService configDirectoryService,
             IConfiguration configuration)
+            : base(logger, configuration) 
         {
             _logger = logger;
-            _configuration = configuration;
 
             OutDirectory = configDirectoryService.GetDirectory(
                 Constants.ConfigurationKeys.OutDirectory,
@@ -25,20 +24,6 @@ namespace duplexify.Application.Configuration
             MergeRetryTimeout = GetValue(nameof(MergeRetryTimeout), TimeSpan.FromSeconds(5));
             MergeRetryCount = GetValue(nameof(MergeRetryCount), 5);
         }
-
-        private T GetValue<T>(string key, T defaultValue)
-            where T : struct
-        {
-            var value = _configuration.GetValue(key, defaultValue);
-
-            if (!value.Equals(defaultValue))
-            {
-                _logger.LogInformation($"{key} is {value}.");
-            }
-
-            return value;
-        }
-
 
         public TimeSpan MergeRetryTimeout { get; init; }
 

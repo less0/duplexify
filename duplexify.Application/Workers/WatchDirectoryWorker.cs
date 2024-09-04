@@ -9,25 +9,24 @@ namespace duplexify.Application.Workers;
 /// with a <see cref="FileSystemWatcher"/> to assure an increased compatability across systems 
 /// and file systems.
 /// </summary>
-public class WatchDirectoryWorker : BackgroundService
+internal class WatchDirectoryWorker : BackgroundService
 {
     private readonly ILogger<WatchDirectoryWorker> _logger;
     private readonly IPdfMerger _pdfMerger;
-    private readonly string _watchDirectory;
+    private readonly IWatchDirectoryWorkerConfiguration _configuration;
+
     private readonly HashSet<string> _filesNotToProcess = new();
 
     public WatchDirectoryWorker(ILogger<WatchDirectoryWorker> logger,
         IConfigDirectoryService configDirectoryService,
-        IPdfMerger pdfMerger)
+        IPdfMerger pdfMerger,
+        IWatchDirectoryWorkerConfiguration configuration)
     {
         _logger = logger;
         _pdfMerger = pdfMerger;
+        _configuration = configuration;
 
-        _watchDirectory = configDirectoryService.GetDirectory(
-            Constants.ConfigurationKeys.WatchDirectory,
-            Constants.DefaultWatchDirectoryName);
-
-        _logger.LogInformation("Watching directory {0}", _watchDirectory);
+        _logger.LogInformation("Watching directory {0}", _configuration.WatchDirectory);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -63,10 +62,39 @@ public class WatchDirectoryWorker : BackgroundService
     /// </returns>
     private string[] GetFilesToProcess()
     {
-        var files = Directory.GetFiles(_watchDirectory, "*.pdf", new EnumerationOptions() { RecurseSubdirectories = false });
-        return files.Where(f => !IsLocked(f))
+        var files = Directory.GetFiles(_configuration.WatchDirectory, "*.pdf", new EnumerationOptions() { RecurseSubdirectories = false });
+        return files.Where(ShallProcess)
             .OrderBy(File.GetCreationTime)
             .ToArray();
+    }
+
+    private bool ShallProcess(string filePath)
+    {
+        return HasDelayElapsed(filePath) && !IsLocked(filePath);
+    }
+
+    /// <summary>
+    /// We allow the worker to be configured to process files delayed. Sometimes processing files 
+    /// immediately interferes with the scanner writing files to the network share, which can 
+    /// yield either the scanner failing to write the file or PDFtk failing to process the file.
+    /// </summary>
+    /// <param name="filePath">
+    /// The path of the file.
+    /// </param>
+    /// <returns>
+    /// <c>true</c> if the delay timeout has elapsed (which is always the case if the timeout is 
+    /// 0), <c>false</c> otherwise.
+    /// </returns>
+    private bool HasDelayElapsed(string filePath)
+    {
+        if(_configuration.ProcessingDelay == TimeSpan.Zero)
+        {
+            return true;
+        }
+
+        var fileCreationTimestamp = File.GetCreationTimeUtc(filePath);
+
+        return DateTime.UtcNow - fileCreationTimestamp > _configuration.ProcessingDelay;
     }
 
     /// <summary>
@@ -85,6 +113,10 @@ public class WatchDirectoryWorker : BackgroundService
             var fileStream = File.OpenWrite(filePath);
             fileStream.Close();
             return false;
+        }
+        catch (IOException)
+        {
+            return true;
         }
         catch (UnauthorizedAccessException)
         {
