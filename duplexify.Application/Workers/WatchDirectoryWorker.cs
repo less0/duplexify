@@ -1,3 +1,6 @@
+using duplexify.Application.Contracts;
+using duplexify.Application.Contracts.Configuration;
+
 namespace duplexify.Application.Workers;
 
 /// <summary>

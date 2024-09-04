@@ -1,4 +1,6 @@
-﻿using Polly;
+﻿using duplexify.Application.Contracts;
+using duplexify.Application.Contracts.Configuration;
+using Polly;
 using Polly.Retry;
 using System.Collections.Concurrent;
 using System.ComponentModel;

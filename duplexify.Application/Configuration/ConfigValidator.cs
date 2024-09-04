@@ -1,4 +1,6 @@
-﻿namespace duplexify.Application.Configuration
+﻿using duplexify.Application.Contracts.Configuration;
+
+namespace duplexify.Application.Configuration
 {
     internal class ConfigValidator(IConfigDirectoryService configDirectoryService) : IConfigValidator
     {

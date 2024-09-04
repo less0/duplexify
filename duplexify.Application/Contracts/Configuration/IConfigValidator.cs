@@ -1,6 +1,6 @@
 ﻿using duplexify.Application.Configuration;
 
-namespace duplexify.Application
+namespace duplexify.Application.Contracts.Configuration
 {
     internal interface IConfigValidator
     {

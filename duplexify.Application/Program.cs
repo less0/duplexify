@@ -1,5 +1,6 @@
-using duplexify.Application;
 using duplexify.Application.Configuration;
+using duplexify.Application.Contracts;
+using duplexify.Application.Contracts.Configuration;
 using duplexify.Application.Workers;
 
 var builder = Host.CreateApplicationBuilder(args);

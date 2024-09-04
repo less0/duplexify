@@ -1,4 +1,4 @@
-﻿namespace duplexify.Application
+﻿namespace duplexify.Application.Contracts
 {
     /// <summary>
     /// Contract for a class that merges PDF files. The files are processed one by one and as soon
