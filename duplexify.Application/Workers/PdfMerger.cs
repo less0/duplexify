@@ -9,62 +9,33 @@ namespace duplexify.Application.Workers
 {
     internal class PdfMerger : BackgroundService, IPdfMerger
     {
-        private const int DefaultMergeRetryCount = 5;
-
-        private static readonly TimeSpan DefaultMergeRetryTimeout = TimeSpan.FromSeconds(5);
-
         private readonly ILogger<PdfMerger> _logger;
-        private string _outDirectory;
-        private string _errorDirectory;
-        private TimeSpan _staleFileTimeout;
+        private IPdfMergerConfiguration _configuration;
         private ConcurrentQueue<string> _processingQueue = new();
         private string _currentErrorDirectory = null!;
         private RetryPolicy<bool> _mergeRetryPolicy;
 
         public PdfMerger(ILogger<PdfMerger> logger, 
-            IConfigDirectoryService configDirectoryService,
-            IConfiguration configuration)
+            IPdfMergerConfiguration configuration)
         {
             _logger = logger;
+            _configuration = configuration;
 
-            _outDirectory = configDirectoryService.GetDirectory(
-                Constants.ConfigurationKeys.OutDirectory,
-                Constants.DefaultOutDirectoryName);
-            _errorDirectory = configDirectoryService.GetDirectory(
-                Constants.ConfigurationKeys.ErrorDirectory,
-                Constants.DefaultErrorDirectoryName);
+            SetUpMergeRetryPolicy();
 
-            SetUpStaleFileCleanUp(configuration);
-            SetUpMergeRetryPolicy(configuration);
-
-            _logger.LogInformation("Writing to directory {0}", _outDirectory);
-            _logger.LogInformation("Writing corrupt PDFs to {0}", _errorDirectory);
+            _logger.LogInformation("Writing to directory {0}", _configuration.OutDirectory);
+            _logger.LogInformation("Writing corrupt PDFs to {0}", _configuration.ErrorDirectory);
         }
 
-        private void SetUpStaleFileCleanUp(IConfiguration configuration)
-        {
-            _staleFileTimeout = configuration.GetValue("StaleFileTimeout", TimeSpan.FromHours(1));
-        }
+        private bool SingleFileInQueueIsStale => _processingQueue.Count == 1
+                            && _processingQueue.TryPeek(out var filePath)
+                            && DateTime.Now - File.GetLastWriteTime(filePath) > _configuration.StaleFileTimeout;
 
         [MemberNotNull(nameof(_mergeRetryPolicy))]
-        private void SetUpMergeRetryPolicy(IConfiguration configuration)
+        private void SetUpMergeRetryPolicy()
         {
-            var mergeRetryTimeout = configuration.GetValue("MergeRetryTimeout", DefaultMergeRetryTimeout);
-
-            if(mergeRetryTimeout != DefaultMergeRetryTimeout)
-            {
-                _logger.LogInformation($"Merge retry timeout is set to {mergeRetryTimeout}.");
-            }
-
-            var mergeRetryCount = configuration.GetValue("MergeRetryCount", DefaultMergeRetryCount);
-
-            if (mergeRetryCount != DefaultMergeRetryCount)
-            {
-                _logger.LogInformation($"Merge retry count is set to {mergeRetryCount}.");
-            }
-
             _mergeRetryPolicy = Policy.HandleResult(false)
-                .WaitAndRetry(mergeRetryCount, _ => mergeRetryTimeout, (_, _, currentRetryCount, _) => _logger.LogError($"Failed merging files, retrying. ({currentRetryCount})"));
+                .WaitAndRetry(_configuration.MergeRetryCount, _ => _configuration.MergeRetryTimeout, (_, _, currentRetryCount, _) => _logger.LogError($"Failed merging files, retrying. ({currentRetryCount})"));
         }
 
         public void EnqueueForMerging(string path)
@@ -97,10 +68,6 @@ namespace duplexify.Application.Workers
             }
         }
 
-        private bool SingleFileInQueueIsStale => _processingQueue.Count == 1
-                            && _processingQueue.TryPeek(out var filePath)
-                            && DateTime.Now - File.GetLastWriteTime(filePath) > _staleFileTimeout;
-
         private void MergeFirstTwoFilesFromQueue()
         {
             if (_processingQueue.Count < 2)
@@ -120,7 +87,7 @@ namespace duplexify.Application.Workers
 
         private void MergeFiles(string fileA, string fileB)
         {
-            string outFile = Path.Combine(_outDirectory, $"{DateTime.Now.GetSortableFileSystemName()}.pdf");
+            string outFile = Path.Combine(_configuration.OutDirectory, $"{DateTime.Now.GetSortableFileSystemName()}.pdf");
 
             _logger.LogInformation($"Merging {fileA} and {fileB}");
 
@@ -145,7 +112,7 @@ namespace duplexify.Application.Workers
 
         private void CreateUniqueErrorDirectory()
         {
-            var uniqueErrorDirectory = Path.Combine(_errorDirectory, DateTime.Now.GetSortableFileSystemName());
+            var uniqueErrorDirectory = Path.Combine(_configuration.ErrorDirectory, DateTime.Now.GetSortableFileSystemName());
 
             if (!Directory.Exists(uniqueErrorDirectory))
             {

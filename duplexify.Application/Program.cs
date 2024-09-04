@@ -4,6 +4,7 @@ using duplexify.Application.Workers;
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddSingleton<IConfigDirectoryService, ConfigDirectoryService>();
 builder.Services.AddSingleton<IConfigValidator, ConfigValidator>();
+builder.Services.AddSingleton<IPdfMergerConfiguration, PdfMergerConfiguration>();
 
 // We are using this approach for WatchDirectoryWorker to be able to reference IPdfMerger
 builder.Services.AddSingleton<PdfMerger>();
