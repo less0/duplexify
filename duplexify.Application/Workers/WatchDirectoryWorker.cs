@@ -33,16 +33,9 @@ internal class WatchDirectoryWorker : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            string[] files = GetFilesToProcess();
+            CleanUpFilesNotToProcess();
 
-            // Remove files that do not exist from list of files not to process, to allow 
-            // to process files with the same names later.
-            foreach (var fileNotToProcess in _filesNotToProcess.Where(f => !files.Contains(f)))
-            {
-                _filesNotToProcess.Remove(fileNotToProcess);
-            }
-
-            foreach (var fileToProcess in files.Where(f => !_filesNotToProcess.Contains(f)))
+            foreach (var fileToProcess in GetFilesToProcess().Where(f => !_filesNotToProcess.Contains(f)))
             {
                 // Add file to list of files that should not be processed to prevent the file
                 // to be processed in the next iteration
@@ -54,6 +47,18 @@ internal class WatchDirectoryWorker : BackgroundService
         }
     }
 
+    private void CleanUpFilesNotToProcess()
+    {
+        var files = GetAllPdfFiles();
+
+        // Remove files that do not exist from list of files not to process, to allow 
+        // to process files with the same names later.
+        foreach (var fileNotToProcess in _filesNotToProcess.Where(f => !files.Contains(f)))
+        {
+            _filesNotToProcess.Remove(fileNotToProcess);
+        }
+    }
+
     /// <summary>
     /// Gets the files to process, i.e. all files that end with .pdf and are not locked for writing.
     /// </summary>
@@ -62,10 +67,15 @@ internal class WatchDirectoryWorker : BackgroundService
     /// </returns>
     private string[] GetFilesToProcess()
     {
-        var files = Directory.GetFiles(_configuration.WatchDirectory, "*.pdf", new EnumerationOptions() { RecurseSubdirectories = false });
-        return files.Where(ShallProcess)
+        return GetAllPdfFiles()
+            .Where(ShallProcess)
             .OrderBy(File.GetCreationTime)
             .ToArray();
+    }
+
+    private string[] GetAllPdfFiles()
+    {
+        return Directory.GetFiles(_configuration.WatchDirectory, "*.pdf", new EnumerationOptions() { RecurseSubdirectories = false });
     }
 
     private bool ShallProcess(string filePath)
