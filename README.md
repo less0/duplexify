@@ -35,6 +35,7 @@ Custom directories can be set in `appsettings.json`
 | `MergeRetryCount` | The number of times, the worker retries to merge the files if PDFtk failed. Defaults to `5`. |
 | `MergeRetryTimeout` | The timeout after which PDFtk is executed again after it's failed. Given as a time span, e.g. `"00:00:10"` for ten seconds. Defaults to five seconds. |
 | `ProcessingDelay` | An optional delay to process the files after. This is due to issues that occurred with a scanner that made either the scanning or the merging fail. Given as a time span, e.g. `"00:00:10"` for ten seconds. Defaults to zero. |
+| `AddHealthcheckEndpoint` | A boolean value that states whether a healthcheck shall be available at `<host>/health`. |
 
 ## Building with Docker
 
@@ -93,6 +94,7 @@ Just replace the parts in the angle brackets with the values suitable for your s
 | `DOTNET_MergeRetryCount` | The number of times, the worker retries to merge the files if PDFtk failed. Defaults to `5`. |
 | `DOTNET_MergeRetryTimeout` | The timeout after which PDFtk is executed again after it's failed. Given as a time span, e.g. `00:00:10` for ten seconds. Defaults to five seconds. |
 | `DOTNET_ProcessingDelay` | An optional delay to process the files after. This is due to issues that occurred with a scanner that made either the scanning or the merging fail. Given as a time span, e.g. `00:00:10` for ten seconds. Defaults to zero. |
+| `DOTNET_AddHealthcheckEndpoint` | A boolean value that states whether a healthcheck shall be available at `<host>/health`. |
 
 # Known limitations
 
