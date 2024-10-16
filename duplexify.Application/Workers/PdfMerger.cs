@@ -1,5 +1,6 @@
 ﻿using duplexify.Application.Contracts;
 using duplexify.Application.Contracts.Configuration;
+using duplexify.Application.Contracts.Notifications;
 using Polly;
 using Polly.Retry;
 using System.Collections.Concurrent;
@@ -13,20 +14,24 @@ namespace duplexify.Application.Workers
     {
         private readonly ILogger<PdfMerger> _logger;
         private IPdfMergerConfiguration _configuration;
+        private readonly IErrorNotifications _errorNotifications;
         private ConcurrentQueue<string> _processingQueue = new();
         private string _currentErrorDirectory = null!;
         private RetryPolicy<bool> _mergeRetryPolicy;
 
         public PdfMerger(ILogger<PdfMerger> logger, 
-            IPdfMergerConfiguration configuration)
+            IPdfMergerConfiguration configuration,
+            IErrorNotifications errorNotifications)
         {
             _logger = logger;
             _configuration = configuration;
-
+            _errorNotifications = errorNotifications;
             SetUpMergeRetryPolicy();
 
             _logger.LogInformation("Writing to directory {0}", _configuration.OutDirectory);
             _logger.LogInformation("Writing corrupt PDFs to {0}", _configuration.ErrorDirectory);
+
+            errorNotifications.Send("Test");
         }
 
         private bool SingleFileInQueueIsStale => _processingQueue.Count == 1
@@ -102,6 +107,7 @@ namespace duplexify.Application.Workers
             }
             else
             {
+                _errorNotifications.Send($"An error occurred merging files {Path.GetFileName(fileA)} and {Path.GetFileName(fileB)}");
                 CreateUniqueErrorDirectory();
 
                 // We can't continue with the files still being around
@@ -109,6 +115,7 @@ namespace duplexify.Application.Workers
                 Policy.Handle<IOException>().RetryForever().Execute(() => MoveToErrorDirectory(fileB));
 
                 _logger.LogError("Error occurred, moved files to error directory {0}", _currentErrorDirectory);
+                
             }
         }
 

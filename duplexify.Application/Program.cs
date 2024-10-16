@@ -1,6 +1,7 @@
 using duplexify.Application.Configuration;
 using duplexify.Application.Contracts;
 using duplexify.Application.Contracts.Configuration;
+using duplexify.Application.Notifications;
 using duplexify.Application.Workers;
 using Microsoft.AspNetCore.Builder;
 
@@ -9,6 +10,9 @@ builder.Services.AddSingleton<IConfigDirectoryService, ConfigDirectoryService>()
 builder.Services.AddSingleton<IConfigValidator, ConfigValidator>();
 builder.Services.AddSingleton<IPdfMergerConfiguration, PdfMergerConfiguration>();
 builder.Services.AddSingleton<IWatchDirectoryWorkerConfiguration, WatchDirectoryWorkerConfiguration>();
+builder.Services.AddHttpClient();
+
+builder.AddNotifications();
 
 // We are using this approach for WatchDirectoryWorker to be able to reference IPdfMerger
 builder.Services.AddSingleton<PdfMerger>();
