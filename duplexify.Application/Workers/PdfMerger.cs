@@ -30,8 +30,6 @@ namespace duplexify.Application.Workers
 
             _logger.LogInformation("Writing to directory {0}", _configuration.OutDirectory);
             _logger.LogInformation("Writing corrupt PDFs to {0}", _configuration.ErrorDirectory);
-
-            errorNotifications.Send("Test");
         }
 
         private bool SingleFileInQueueIsStale => _processingQueue.Count == 1
